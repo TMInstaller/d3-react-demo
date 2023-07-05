@@ -6,38 +6,30 @@ import { BrowserRouter as Router, Route, Link, Routes } from "react-router-dom";
 import HighchartPage from "./HighchartPage";
 
 function App() {
-  const nodes = [
-    { id: 1, name: "A" },
-    { id: 2, name: "B" },
-    { id: 3, name: "C" },
-    { id: 4, name: "D" },
-    { id: 5, name: "E" },
-    { id: 6, name: "F" },
-    { id: 7, name: "G" },
-    { id: 8, name: "H" },
-  ];
+  const nodes = Array.from({ length: 100 }, (_, i) => ({
+    id: i + 1,
+    name: `Node${i + 1}`,
+  }));
 
-  const links = [
-    { source: 1, target: 2 },
-    { source: 1, target: 3 },
-    { source: 2, target: 4 },
-    { source: 2, target: 5 },
-    { source: 3, target: 6 },
-    { source: 3, target: 7 },
-    { source: 4, target: 8 },
-    { source: 5, target: 8 },
-  ];
+  const links = Array.from({ length: 100 }, (_, i) => ({
+    source: i + 1,
+    target: Math.min(i + 2, 100),
+    name: `Link${i + 1}`,
+  }));
 
   const svgRef = useRef();
-  const width = 800;
-  const height = 600;
+  const width = 1600;
+  const height = 1000;
 
   useEffect(() => {
     const simulation = d3
       .forceSimulation(nodes)
       .force(
         "link",
-        d3.forceLink(links).id((d) => d.id)
+        d3
+          .forceLink(links)
+          .id((d) => d.id)
+          .distance(100)
       )
       .force("charge", d3.forceManyBody())
       .force("center", d3.forceCenter(width / 2, height / 2));
@@ -52,6 +44,14 @@ function App() {
       .data(links)
       .join("line")
       .attr("stroke-width", (d) => Math.sqrt(d.value));
+
+    // 추가된 부분: 링크 라벨
+    const linkLabel = svg
+      .append("g")
+      .selectAll("text")
+      .data(links)
+      .join("text")
+      .text((d) => d.name);
 
     const node = svg
       .append("g")
@@ -78,6 +78,10 @@ function App() {
         .attr("y1", (d) => d.source.y)
         .attr("x2", (d) => d.target.x)
         .attr("y2", (d) => d.target.y);
+
+      linkLabel
+        .attr("x", (d) => (d.source.x + d.target.x) / 2)
+        .attr("y", (d) => (d.source.y + d.target.y) / 2);
 
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
 
