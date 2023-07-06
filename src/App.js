@@ -45,14 +45,6 @@ function App() {
       .join("line")
       .attr("stroke-width", (d) => Math.sqrt(d.value));
 
-    // 추가된 부분: 링크 라벨
-    const linkLabel = svg
-      .append("g")
-      .selectAll("text")
-      .data(links)
-      .join("text")
-      .text((d) => d.name);
-
     const node = svg
       .append("g")
       .attr("stroke", "#fff")
@@ -72,16 +64,47 @@ function App() {
       .attr("dominant-baseline", "central")
       .text((d) => d.name);
 
+    function getConnectedNodes(node, depth = 0, nodeSet = new Set()) {
+      if (depth > 2) return nodeSet;
+      nodeSet.add(node.id);
+      links.forEach((link) => {
+        if (link.source === node.id && !nodeSet.has(link.target)) {
+          getConnectedNodes(
+            nodes.find((n) => n.id === link.target),
+            depth + 1,
+            nodeSet
+          );
+        }
+        if (link.target === node.id && !nodeSet.has(link.source)) {
+          getConnectedNodes(
+            nodes.find((n) => n.id === link.source),
+            depth + 1,
+            nodeSet
+          );
+        }
+      });
+      return nodeSet;
+    }
+
+    node.on("click", (event, d) => {
+      const connectedNodes = Array.from(getConnectedNodes(d));
+      node.attr("fill", (n) =>
+        connectedNodes.includes(n.id) ? "#69b3a2" : "#ddd"
+      );
+      link.style("stroke", (l) =>
+        connectedNodes.includes(l.source.id) &&
+        connectedNodes.includes(l.target.id)
+          ? "#999"
+          : "#ddd"
+      );
+    });
+
     simulation.on("tick", () => {
       link
         .attr("x1", (d) => d.source.x)
         .attr("y1", (d) => d.source.y)
         .attr("x2", (d) => d.target.x)
         .attr("y2", (d) => d.target.y);
-
-      linkLabel
-        .attr("x", (d) => (d.source.x + d.target.x) / 2)
-        .attr("y", (d) => (d.source.y + d.target.y) / 2);
 
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
 
